@@ -1,7 +1,9 @@
 import type React from 'react';
 import { indianStates, createCurrentDate } from './mobileShopData';
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+const StockIntakePanel = lazy(() => import('./StockIntakePanel'));
+import { validateIntakeDraft, type StockReceipt } from '../features/stock-intake/stockIntake';
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -52,12 +54,6 @@ const invoices = [
   { id: 'INV-2026-1047', customer: 'Diya Shah', date: '13 Oct 2026', amount: 25999, status: 'Paid' },
   { id: 'INV-2026-1046', customer: 'Kabir Nair', date: '12 Oct 2026', amount: 69900, status: 'Due' },
   { id: 'INV-2026-1045', customer: 'Ishita Rao', date: '12 Oct 2026', amount: 64999, status: 'Paid' },
-];
-
-const stockRows = [
-  { ref: 'PO-2084', device: 'Samsung Galaxy S24', details: '256 GB · Gray', source: 'Metro Mobile Distributors', units: 5, date: '13 Oct 2026', state: 'Received' },
-  { ref: 'PO-2083', device: 'iPhone 15', details: '128 GB · Black', source: 'Ingram Micro India', units: 3, date: '12 Oct 2026', state: 'Received' },
-  { ref: 'PO-2082', device: 'Google Pixel 8a', details: '128 GB · Aloe', source: 'Rashi Peripherals', units: 4, date: '11 Oct 2026', state: 'In transit' },
 ];
 
 const stockOutRows = [
@@ -135,6 +131,7 @@ function Table({ headers, children }: { headers: string[]; children: React.React
 
 export default function MobileShopSection({ section, onNavigate, searchText = '', onSearchChange = () => {}, shopProfile }: { section: string; onNavigate: (name: string) => void; searchText?: string; onSearchChange?: (value: string) => void; shopProfile: ShopBusinessProfile }) {
   const [inventory, setInventory] = useBrowserSaved<Product[]>('shopos-demo-inventory', products);
+  const [stockReceipts, setStockReceipts] = useBrowserSaved<StockReceipt[]>('shopos-demo-stock-receipts', []);
   const [sales, setSales] = useBrowserSaved<SaleInvoice[]>('shopos-demo-sales', []);
   const [partners, setPartners] = useBrowserSaved<FinancePartner[]>('shopos-finance-partners', [
     { id: 'bajaj', name: 'Bajaj Finance', type: 'Consumer durable loan', contact: '', status: 'Active', notes: 'EMI at point of sale' },
@@ -213,6 +210,18 @@ export default function MobileShopSection({ section, onNavigate, searchText = ''
     setActiveInvoice(invoice);
   };
 
+  const postStockReceipt = (receipt: StockReceipt) => {
+    if (validateIntakeDraft(receipt, stockReceipts, inventory).length) return false;
+    setInventory(items => items.map(product => {
+      const received = receipt.lines.filter(line => line.model === product.model && line.variant === product.variant).length;
+      if (!received) return product;
+      const stock = product.stock + received;
+      return { ...product, stock, status: stock <= 2 ? 'Low stock' : 'In stock' };
+    }));
+    setStockReceipts(items => [...items, receipt]);
+    return true;
+  };
+
   if (!(['Dashboard', 'Inventory', 'Stock In', 'Stock Out', 'Billing', 'Invoices', 'Customers', 'Reports', 'Finance Partners'] as string[]).includes(section)) return null;
 
   return <>
@@ -236,11 +245,8 @@ export default function MobileShopSection({ section, onNavigate, searchText = ''
 
     {section === 'Stock In' && <>
       <PageTitle eyebrow="PURCHASES" title="Stock received" description="Log supplier deliveries and add each device to available stock." />
-      <div className="shop-metrics"><Metric label="Received today" value="8 units" note="Across 2 purchase orders" icon={ArrowDownToLine} /><Metric label="On the way" value="4 units" note="1 supplier delivery" icon={Package} tone="mint" /><Metric label="This month" value="46 units" note="Across 9 deliveries" icon={ShoppingBag} tone="lilac" /></div>
-      <Table headers={['PURCHASE REF', 'DEVICE', 'SUPPLIER', 'UNITS', 'RECEIVED', 'STATUS']}>
-        {stockRows.map(row => <tr key={row.ref}><td><strong className="shop-mono">{row.ref}</strong></td><td><strong>{row.device}</strong><small>{row.details}</small></td><td>{row.source}</td><td>{row.units}</td><td>{row.date}</td><td><span className={`shop-status ${row.state === 'Received' ? 'success' : 'warning'}`}>{row.state}</span></td></tr>)}
-      </Table>
-      <div className="card shop-callout"><CircleAlert size={18} /><p><strong>Good practice:</strong> capture supplier invoice number, unit cost, serial number and IMEI for every phone received.</p></div>
+      <div className="shop-metrics"><Metric label="Received today" value={`${stockReceipts.filter(receipt => receipt.postedAt.slice(0, 10) === toIsoDate(reportNow)).reduce((sum, receipt) => sum + receipt.lines.length, 0)} units`} note="Posted supplier receipts" icon={ArrowDownToLine} /><Metric label="Handsets in stock" value={String(inventory.reduce((sum, product) => sum + product.stock, 0))} note="Current browser inventory" icon={Package} tone="mint" /><Metric label="Supplier receipts" value={String(stockReceipts.length)} note="Saved in this browser" icon={ShoppingBag} tone="lilac" /></div>
+      <Suspense fallback={<div className="card shop-loading">Loading stock intake…</div>}><StockIntakePanel products={inventory} receipts={stockReceipts} onPostReceipt={postStockReceipt} /></Suspense>
     </>}
 
     {section === 'Stock Out' && <>
