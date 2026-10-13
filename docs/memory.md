@@ -35,4 +35,12 @@ No approved decisions exist for GST/invoicing, costing, store-specific tax/invoi
 
 ## Current implementation reality
 
-Only the frontend foundation/configuration and informational setup screen exist. No authentication, database migrations, RLS, organizations, stores, business modules, PWA, subscriptions, or platform admin are implemented. Phase 1 is incomplete. See [context.md](context.md) for the current workspace snapshot.
+- The Vite application has Supabase Auth, organization/store onboarding, and the Phase 1 multi-tenant schema and RLS foundation. ShopOS users can switch organization and store context in the dashboard.
+- The mobile-retail workspace includes dashboard, inventory, stock in/out, billing, invoices, customers, reports, finance-partner configuration, shop settings, and help screens.
+- First sign-up continues into a two-step shop profile setup for shop name, contact, business category, address, state, and optional GSTIN.
+- Sales, inventory demo figures, sample invoices/customers, finance partners, and shop/staff settings currently use browser local storage or illustrative seed data. These screens are not yet connected to ShopOS catalog, inventory, sales, invoice, payment, customer, reporting, or lender database workflows.
+- Billing can print a local receipt/invoice preview. No payment is collected, invoice/stock writes are not server-authoritative, and e-invoice IRN/QR generation is not implemented. Verify tax and invoice requirements before real use.
+- Optional Aadhaar and PAN inputs exist only in the local demo staff profile and are labeled with a warning not to enter real identity numbers. A production design must use a suitable secure backend and access policy before collecting these identifiers.
+- The preview has no promotional mobile-app sidebar card; mobile navigation is responsive and retains the active store selector.
+
+See [context.md](context.md) for current verification and remaining work.

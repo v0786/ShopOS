@@ -5,6 +5,7 @@ import { AuthScreen } from './components/AuthScreen'
 import type { Organization, Store, OrgRole } from './types/database'
 import { authService } from './features/auth/authService'
 import { organizationService } from './features/organizations/organizationService'
+import { ShopOnboarding } from './components/ShopOnboarding'
 
 // Default Phase 1 seed organizations for interactive workspace preview
 const DEFAULT_ORGS: Organization[] = [
@@ -78,11 +79,11 @@ const DEFAULT_STORES: Record<string, Store[]> = {
 }
 
 export interface AppProps {
-  initialView?: 'setup' | 'dashboard' | 'auth'
+  initialView?: 'setup' | 'dashboard' | 'auth' | 'onboarding'
 }
 
 function App({ initialView = 'setup' }: AppProps) {
-  const [view, setView] = useState<'setup' | 'dashboard' | 'auth'>(initialView)
+  const [view, setView] = useState<'setup' | 'dashboard' | 'auth' | 'onboarding'>(initialView)
 
   const [organizations, setOrganizations] = useState<Organization[]>(DEFAULT_ORGS)
   const [activeOrgId, setActiveOrgId] = useState<string>(DEFAULT_ORGS[0].id)
@@ -107,7 +108,7 @@ function App({ initialView = 'setup' }: AppProps) {
 
   const handleSignIn = async (email: string, pass: string) => {
     await authService.signIn(email, pass)
-    setView('dashboard')
+    setView(localStorage.getItem('shopos-onboarding-complete') === 'true' ? 'dashboard' : 'onboarding')
   }
 
   const handleSignUpAndOnboard = async (params: {
@@ -158,7 +159,17 @@ function App({ initialView = 'setup' }: AppProps) {
     setActiveOrgId(newOrg.id)
     setActiveStoreId(newStore.id)
     setRole('owner')
+    setView('onboarding')
+  }
+
+  const handleShopOnboardingComplete = (profile: { shopName: string; legalName: string; gstin: string; address: string; phone: string; email: string; state: string; stateCode: string; invoicePrefix: string; ownerPhone: string; businessType: string; city: string; pincode: string }) => {
+    localStorage.setItem('shopos-shop-profile', JSON.stringify({ shopName: profile.shopName, legalName: profile.legalName, gstin: profile.gstin, address: [profile.address, profile.city, profile.pincode].filter(Boolean).join(', '), phone: profile.ownerPhone, email: profile.email, state: profile.state, stateCode: profile.stateCode, invoicePrefix: profile.invoicePrefix }))
+    localStorage.setItem('shopos-onboarding-complete', 'true')
     setView('dashboard')
+  }
+
+  if (view === 'onboarding') {
+    return <ShopOnboarding initialShopName={activeOrg?.name || ''} onComplete={handleShopOnboardingComplete} />
   }
 
   if (view === 'dashboard') {
@@ -196,15 +207,14 @@ function App({ initialView = 'setup' }: AppProps) {
 
       <section className="setup-card" aria-labelledby="setup-title">
         <p className="eyebrow">Retail, repairs, all in one place</p>
-        <h1 id="setup-title">A steadier way to run your shop.</h1>
+        <h1 id="setup-title">A steadier way to run your mobile shop.</h1>
         <p className="setup-copy">
-          The Phase 1 multi-tenant architecture is in place with PostgreSQL RLS,
-          organization and store boundaries, and automated integration tests.
+          Keep phones, stock, billing and customer follow-up together in one workspace built for independent mobile retailers.
         </p>
 
         <div className="setup-status" role="status">
           <span className="status-dot" aria-hidden="true" />
-          <span>Phase 1 foundation · multi-tenancy & stores implemented</span>
+          <span>Mobile retail workspace · shop onboarding after sign-up</span>
         </div>
 
         <div className="mt-4 pt-4 border-t border-slate-700/50 flex flex-wrap gap-4 items-center text-sm">
@@ -216,7 +226,7 @@ function App({ initialView = 'setup' }: AppProps) {
             }}
             className="text-emerald-400 hover:text-emerald-300 font-medium underline"
           >
-            Open Phase 1 Multi-Store Dashboard &rarr;
+            Open the ShopOS dashboard &rarr;
           </a>
           <a
             href="#auth"

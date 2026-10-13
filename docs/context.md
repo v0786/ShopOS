@@ -36,3 +36,13 @@
 ## Next action
 
 Connect cloud Supabase project and credentials for browser session persistence, then begin Phase 2: Catalog and inventory schema, store pricing, and tracked IMEI identity model.
+## 13 October 2026 · Mobile shop dashboard integration
+
+- Synced the mobile shop workspace from the separate Next.js preview into this React/Vite ShopOS repository. Preserved its existing Supabase authentication, organization/store selectors, and multi-tenant foundation.
+- Added responsive shop navigation and screens for Dashboard, Inventory, Stock In, Stock Out, Billing, Invoices, Customers, Reports, Finance Partners, Settings, and Help. The old promotional mobile-app sidebar card is absent.
+- Added two-step shop setup after first sign-up (shop/contact/category, then address/state/GSTIN details), and first sign-in prompts for setup when this browser has no completed shop profile.
+- Billing includes product search, brand/category filters, cart quantity controls/removal, demo sale/inventory updates, and browser print receipt/invoice preview. Reports include daily/monthly/7/30/90-day and custom ranges plus CSV export. Finance partners are configurable locally, with Bajaj Finance and TVS Credit seeded.
+- Shop and staff settings are browser-local; Aadhaar/PAN fields are optional and carry a warning against entering real identity numbers. No new server-authoritative operational schema or write workflows were added.
+- Verification today: `npm run build` passes. `npm run lint` passes with zero warnings after refactoring the React purity and hydration warnings. The test suite was not run during this UI integration.
+- Build warning: the generated JS entry is 513.34 kB minified; consider route/code splitting later. Browser data and demo transactions do not sync across users/devices.
+- Workspace for this GitHub repo: `D:\Projects\ShopOS-github` (`origin` is `https://github.com/v0786/ShopOS.git`). The separate source workspace remains `D:\Projects\ShopOS`.
